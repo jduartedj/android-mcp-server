@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ADBWrapper } from './adb-wrapper.js';
-import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler } from './handlers.js';
+import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler } from './handlers.js';
 
 const SERVER_NAME = 'android-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -152,6 +152,203 @@ class AndroidMCPServer {
             },
           },
         },
+        {
+          name: 'android_uiautomator_dump',
+          description: 'Dump the UI hierarchy using UIAutomator and return as XML',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+          },
+        },
+        {
+          name: 'android_uiautomator_find',
+          description: 'Find UI elements by resource ID or text using UIAutomator',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID to search for (e.g., com.example.app:id/button_submit)',
+              },
+              text: {
+                type: 'string',
+                description: 'Text content to search for',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+          },
+        },
+        {
+          name: 'android_uiautomator_click',
+          description: 'Click on a UI element by resource ID using UIAutomator',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element to click (e.g., com.example.app:id/button_submit)',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_wait',
+          description: 'Wait for a UI element to appear by resource ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element to wait for',
+              },
+              timeoutMs: {
+                type: 'number',
+                description: 'Maximum time to wait in milliseconds (default: 5000)',
+                default: 5000,
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_set_text',
+          description: 'Set text on a UI element by resource ID using UIAutomator',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element (e.g., com.example.app:id/text_input)',
+              },
+              text: {
+                type: 'string',
+                description: 'Text to set in the element',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId', 'text'],
+          },
+        },
+        {
+          name: 'android_uiautomator_clear_text',
+          description: 'Clear text from a UI element by resource ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element to clear',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_long_click',
+          description: 'Perform a long click on a UI element by resource ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element to long click',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_double_click',
+          description: 'Perform a double click on a UI element by resource ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the element to double click',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_toggle_checkbox',
+          description: 'Toggle a checkbox element by resource ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the checkbox element',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId'],
+          },
+        },
+        {
+          name: 'android_uiautomator_scroll_in_element',
+          description: 'Scroll within a specific UI element',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              resourceId: {
+                type: 'string',
+                description: 'Resource ID of the scrollable element',
+              },
+              direction: {
+                type: 'string',
+                enum: ['up', 'down', 'left', 'right'],
+                description: 'Direction to scroll',
+              },
+              distance: {
+                type: 'number',
+                description: 'Distance to scroll in pixels (default: 500)',
+                default: 500,
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['resourceId', 'direction'],
+          },
+        },
       ],
     }));
 
@@ -171,6 +368,26 @@ class AndroidMCPServer {
             return await launchAppHandler(this.adb, args);
           case 'android_list_packages':
             return await listPackagesHandler(this.adb, args);
+          case 'android_uiautomator_dump':
+            return await uiautomatorDumpHandler(this.adb, args);
+          case 'android_uiautomator_find':
+            return await uiautomatorFindHandler(this.adb, args);
+          case 'android_uiautomator_click':
+            return await uiautomatorClickHandler(this.adb, args);
+          case 'android_uiautomator_wait':
+            return await uiautomatorWaitHandler(this.adb, args);
+          case 'android_uiautomator_set_text':
+            return await uiautomatorSetTextHandler(this.adb, args);
+          case 'android_uiautomator_clear_text':
+            return await uiautomatorClearTextHandler(this.adb, args);
+          case 'android_uiautomator_long_click':
+            return await uiautomatorLongClickHandler(this.adb, args);
+          case 'android_uiautomator_double_click':
+            return await uiautomatorDoubleClickHandler(this.adb, args);
+          case 'android_uiautomator_toggle_checkbox':
+            return await uiautomatorToggleCheckboxHandler(this.adb, args);
+          case 'android_uiautomator_scroll_in_element':
+            return await uiautomatorScrollInElementHandler(this.adb, args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

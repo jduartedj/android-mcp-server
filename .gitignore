@@ -33,3 +33,9 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Test artifacts and screenshots
+*.png
+tests/artifacts/
+tests/*.md
+

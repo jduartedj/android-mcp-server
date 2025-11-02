@@ -405,4 +405,354 @@ export class ADBWrapper {
     const escapedText = text.replace(/ /g, '%s');
     await this.exec(['shell', 'input', 'text', escapedText], device);
   }
+
+  /**
+   * Dump window hierarchy using UIAutomator (returns XML)
+   */
+  async dumpUIHierarchy(deviceSerial?: string): Promise<string> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const { stdout } = await this.exec(['shell', 'uiautomator', 'dump'], device);
+    return stdout;
+  }
+
+  /**
+   * Find elements by resource ID using UIAutomator
+   */
+  async findElementByResourceId(resourceId: string, deviceSerial?: string): Promise<string> {
+    const device = await this.getTargetDevice(deviceSerial);
+    // Get the UI hierarchy as XML
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    
+    // Read the XML file
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    
+    // Clean up
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    // Parse and search for resource ID
+    if (stdout.includes(`resource-id="${resourceId}"`)) {
+      return `Found element with resource-id: ${resourceId}`;
+    } else {
+      return `Element with resource-id: ${resourceId} not found`;
+    }
+  }
+
+  /**
+   * Find elements by text using UIAutomator
+   */
+  async findElementByText(text: string, deviceSerial?: string): Promise<string> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    
+    // Clean up
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    // Search for text
+    if (stdout.includes(`text="${text}"`) || stdout.includes(`>${text}</`)) {
+      return `Found element with text: ${text}`;
+    } else {
+      return `Element with text: ${text} not found`;
+    }
+  }
+
+  /**
+   * Click on element by resource ID using UIAutomator
+   */
+  async clickElementByResourceId(resourceId: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    // Get the hierarchy to find coordinates
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    // Extract bounds from XML
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      // Click at the center of the element
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      await this.touch(centerX, centerY, 100, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Get detailed UI hierarchy as XML string
+   */
+  async getUIHierarchyXml(deviceSerial?: string): Promise<string> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    return stdout;
+  }
+
+  /**
+   * Wait for element by resource ID
+   */
+  async waitForElement(
+    resourceId: string,
+    timeoutMs: number = 5000,
+    deviceSerial?: string
+  ): Promise<boolean> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const startTime = Date.now();
+    const pollInterval = 500; // Check every 500ms
+
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        const hierarchyFile = '/sdcard/window_dump.xml';
+        await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+        
+        const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+        await this.exec(['shell', 'rm', hierarchyFile], device);
+        
+        if (stdout.includes(`resource-id="${resourceId}"`)) {
+          return true;
+        }
+      } catch (error) {
+        // Continue polling on error
+      }
+
+      // Wait before next poll
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    return false;
+  }
+
+  /**
+   * Set text on an element by resource ID using UIAutomator
+   * This directly sets the text value without simulating keystrokes
+   */
+  async setTextByResourceId(resourceId: string, text: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    // Get the hierarchy to find the element
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    // Extract bounds from XML to identify the element type
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      // Click at the center to focus the element
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      await this.touch(centerX, centerY, 100, device);
+      
+      // Clear existing text
+      await this.sendKeyEvent('KEYEVENT_CTRL_A', device);
+      await this.sendKeyEvent('KEYEVENT_DEL', device);
+      
+      // Input the new text
+      await this.inputText(text, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Clear text from an element by resource ID
+   */
+  async clearTextByResourceId(resourceId: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      await this.touch(centerX, centerY, 100, device);
+      await this.sendKeyEvent('KEYEVENT_CTRL_A', device);
+      await this.sendKeyEvent('KEYEVENT_DEL', device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Long click on element by resource ID
+   */
+  async longClickElementByResourceId(resourceId: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      // Long click is typically 500ms or more
+      await this.touch(centerX, centerY, 500, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Double click on element by resource ID
+   */
+  async doubleClickElementByResourceId(resourceId: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      // Double click: two quick taps
+      await this.touch(centerX, centerY, 100, device);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.touch(centerX, centerY, 100, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Check/toggle checkbox by resource ID
+   */
+  async toggleCheckboxByResourceId(resourceId: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      await this.touch(centerX, centerY, 100, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
+
+  /**
+   * Scroll within a scrollable element
+   */
+  async scrollInElement(
+    resourceId: string,
+    direction: 'up' | 'down' | 'left' | 'right',
+    distance: number = 500,
+    deviceSerial?: string
+  ): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
+    const boundsRegex = new RegExp(`resource-id="${resourceId}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
+    const match = stdout.match(boundsRegex);
+    
+    if (match) {
+      const x1 = parseInt(match[1], 10);
+      const y1 = parseInt(match[2], 10);
+      const x2 = parseInt(match[3], 10);
+      const y2 = parseInt(match[4], 10);
+      
+      const centerX = Math.floor((x1 + x2) / 2);
+      const centerY = Math.floor((y1 + y2) / 2);
+      
+      let startX = centerX, startY = centerY, endX = centerX, endY = centerY;
+      
+      switch (direction) {
+        case 'up':
+          startY = centerY + distance;
+          endY = centerY - distance;
+          break;
+        case 'down':
+          startY = centerY - distance;
+          endY = centerY + distance;
+          break;
+        case 'left':
+          startX = centerX + distance;
+          endX = centerX - distance;
+          break;
+        case 'right':
+          startX = centerX - distance;
+          endX = centerX + distance;
+          break;
+      }
+      
+      await this.swipe(startX, startY, endX, endY, 300, device);
+    } else {
+      throw new Error(`Element with resource-id ${resourceId} not found in UI hierarchy`);
+    }
+  }
 }

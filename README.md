@@ -251,6 +251,28 @@ The server uses the Model Context Protocol to expose Android device control capa
 - **Tool Handlers**: Implements screenshot, touch, and swipe operations
 - **MCP Server**: Exposes tools via the Model Context Protocol
 
+## Project Structure
+
+```
+android-mcp-server/
+├── src/                          # Source code
+│   ├── index.ts                 # MCP server and tool definitions
+│   ├── adb-wrapper.ts           # ADB command wrapper and device control
+│   └── handlers.ts              # Tool handler implementations
+├── dist/                        # Compiled JavaScript (generated)
+├── docs/                        # Documentation
+│   ├── README.md               # Documentation index
+│   └── UIAUTOMATOR_INPUT_ACTIONS.md  # UIAutomator input methods guide
+├── tests/                       # Test scripts and examples
+│   ├── README.md               # Test documentation
+│   ├── test-launch.js          # Basic app launch test
+│   ├── create-user.js          # User registration example
+│   └── ...                     # Additional test scripts
+├── tsconfig.json               # TypeScript configuration
+├── package.json                # Dependencies and scripts
+└── README.md                   # This file
+```
+
 ## License
 
 MIT
