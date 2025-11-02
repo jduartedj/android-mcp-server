@@ -554,3 +554,118 @@ export async function uiautomatorScrollInElementHandler(
     throw new Error(`UIAutomator scroll in element failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
+interface StartScrcpyStreamArgs {
+  deviceSerial?: string;
+}
+
+export async function handleStartScrcpyStream(adb: ADBWrapper, args: StartScrcpyStreamArgs): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { deviceSerial } = args;
+
+  try {
+    await adb.startScrcpyStream(deviceSerial);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Scrcpy streaming started successfully. Use getLatestFrame to retrieve frames.',
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to start scrcpy stream: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+interface StopScrcpyStreamArgs {
+  deviceSerial?: string;
+}
+
+export async function handleStopScrcpyStream(adb: ADBWrapper, args: StopScrcpyStreamArgs): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    await adb.stopScrcpyStream();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Scrcpy stream stopped successfully.',
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to stop scrcpy stream: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+interface GetLatestFrameArgs {
+  // No arguments needed
+}
+
+export async function handleGetLatestFrame(adb: ADBWrapper, args: GetLatestFrameArgs): Promise<{ content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> }> {
+  try {
+    const frame = adb.getLatestFrame();
+
+    if (!frame) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'No frame available. Start streaming first with startScrcpyStream.',
+          },
+        ],
+      };
+    }
+
+    // Return frame as base64-encoded image
+    return {
+      content: [
+        {
+          type: 'image',
+          data: frame.toString('base64'),
+          mimeType: 'image/h264',
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to get latest frame: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+interface CaptureFrameScrcpyArgs {
+  outputPath?: string;
+  deviceSerial?: string;
+}
+
+export async function handleCaptureFrameScrcpy(adb: ADBWrapper, args: CaptureFrameScrcpyArgs): Promise<{ content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> }> {
+  const { outputPath, deviceSerial } = args;
+
+  try {
+    const result = await adb.captureFrameScrcpy(outputPath, deviceSerial);
+
+    if (typeof result === 'string') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Frame saved to: ${result}`,
+          },
+        ],
+      };
+    } else {
+      // Return as base64-encoded image
+      return {
+        content: [
+          {
+            type: 'image',
+            data: result.toString('base64'),
+            mimeType: 'image/png',
+          },
+        ],
+      };
+    }
+  } catch (error) {
+    throw new Error(`Failed to capture frame with scrcpy: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}

@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ADBWrapper } from './adb-wrapper.js';
-import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler } from './handlers.js';
+import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler, handleStartScrcpyStream, handleStopScrcpyStream, handleGetLatestFrame, handleCaptureFrameScrcpy } from './handlers.js';
 
 const SERVER_NAME = 'android-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -349,6 +349,52 @@ class AndroidMCPServer {
             required: ['resourceId', 'direction'],
           },
         },
+        {
+          name: 'android_start_scrcpy_stream',
+          description: 'Start scrcpy streaming for continuous fast frame capture (requires scrcpy installed)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+          },
+        },
+        {
+          name: 'android_stop_scrcpy_stream',
+          description: 'Stop scrcpy streaming',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'android_get_latest_frame',
+          description: 'Get the latest frame from scrcpy stream (instant access, no latency)',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'android_capture_frame_scrcpy',
+          description: 'Capture a single frame via scrcpy (faster than ADB screencap)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              outputPath: {
+                type: 'string',
+                description: 'Local path to save the frame (optional). If not provided, returns base64 encoded image.',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+          },
+        },
       ],
     }));
 
@@ -388,6 +434,14 @@ class AndroidMCPServer {
             return await uiautomatorToggleCheckboxHandler(this.adb, args);
           case 'android_uiautomator_scroll_in_element':
             return await uiautomatorScrollInElementHandler(this.adb, args);
+          case 'android_start_scrcpy_stream':
+            return await handleStartScrcpyStream(this.adb, args as any);
+          case 'android_stop_scrcpy_stream':
+            return await handleStopScrcpyStream(this.adb, args as any);
+          case 'android_get_latest_frame':
+            return await handleGetLatestFrame(this.adb, args as any);
+          case 'android_capture_frame_scrcpy':
+            return await handleCaptureFrameScrcpy(this.adb, args as any);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

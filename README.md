@@ -4,11 +4,13 @@ A Model Context Protocol (MCP) server that provides Android device control capab
 
 ## Features
 
-- 📸 **Screenshot**: Capture screenshots from Android devices
+- � **Scrcpy Streaming**: Ultra-fast H.264 video streaming for <50ms frame polling
+- �📸 **Screenshot**: Capture screenshots from Android devices
 - 👆 **Touch**: Simulate touch events at specific coordinates
 - 👉 **Swipe**: Perform swipe gestures between coordinates
 - 🔌 **ADB Integration**: Direct integration with Android Debug Bridge
 - 🚀 **Auto-Download**: Automatically downloads ADB from official Android sources if not found
+- ⚡ **Real-time Agent Support**: High-performance frame capture for AI decision-making
 
 ## Prerequisites
 
@@ -123,7 +125,81 @@ Once integrated, you can ask GitHub Copilot:
 
 ### Available Tools
 
-#### 1. `android_screenshot`
+#### 1. `android_start_scrcpy_stream`
+
+Start a high-performance H.264 video stream from the device for rapid frame polling.
+
+**Parameters:**
+- `deviceSerial` (optional): Target specific device by serial number
+
+**Latency:** ~2 seconds to initialize, then <50ms per frame
+
+**Use Case:** Real-time screen monitoring for agent decision-making
+
+**Example:**
+```json
+{
+  "name": "android_start_scrcpy_stream",
+  "arguments": {
+    "deviceSerial": "FA8AY0A0000"
+  }
+}
+```
+
+#### 2. `android_get_latest_frame`
+
+Get the latest pre-buffered frame from the active scrcpy stream.
+
+**Parameters:** None (uses active stream)
+
+**Latency:** <50ms
+
+**Returns:** H.264 encoded frame data (buffer)
+
+**Example:**
+```json
+{
+  "name": "android_get_latest_frame",
+  "arguments": {}
+}
+```
+
+#### 3. `android_stop_scrcpy_stream`
+
+Stop the active scrcpy stream and clean up resources.
+
+**Parameters:** None
+
+**Example:**
+```json
+{
+  "name": "android_stop_scrcpy_stream",
+  "arguments": {}
+}
+```
+
+#### 4. `android_capture_frame_scrcpy`
+
+Capture a single frame via scrcpy or fallback to ADB screencap.
+
+**Parameters:**
+- `outputPath` (optional): Local path to save the frame
+- `deviceSerial` (optional): Target specific device by serial number
+
+**Latency:** 100-300ms (scrcpy) or 500-1000ms (ADB fallback)
+
+**Example:**
+```json
+{
+  "name": "android_capture_frame_scrcpy",
+  "arguments": {
+    "outputPath": "./frame.png",
+    "deviceSerial": "FA8AY0A0000"
+  }
+}
+```
+
+#### 5. `android_screenshot`
 
 Capture a screenshot from the Android device.
 
@@ -141,7 +217,7 @@ Capture a screenshot from the Android device.
 }
 ```
 
-#### 2. `android_touch`
+#### 6. `android_touch`
 
 Simulate a touch event at specific screen coordinates.
 
@@ -163,7 +239,7 @@ Simulate a touch event at specific screen coordinates.
 }
 ```
 
-#### 3. `android_swipe`
+#### 7. `android_swipe`
 
 Perform a swipe gesture between two coordinates.
 
@@ -189,46 +265,23 @@ Perform a swipe gesture between two coordinates.
 }
 ```
 
-## ADB Setup
+## Device Setup
 
-### Automatic Installation
+### Quick Start
+
+1. **Set up ADB** (see [Device Setup Guide](./DEVICE_SETUP.md))
+2. **Enable USB Debugging** on your Android device
+3. **Connect via USB** and accept the debugging prompt
+4. **Test connection**: `adb devices -l`
+5. **Run tests**: `node tests/real-device-test.js`
+
+### Detailed Setup Instructions
+
+For platform-specific installation of ADB, device configuration, emulator setup, and troubleshooting, see [Device Setup Guide](./DEVICE_SETUP.md).
+
+### Automatic ADB Installation
 
 The server will automatically download and install ADB from official Android sources if it's not found on your system. The downloaded ADB will be stored in `~/.android-mcp-server/platform-tools/`.
-
-### Manual Installation (Optional)
-
-If you prefer to install ADB manually or want it available system-wide:
-
-**Windows:**
-```bash
-choco install adb
-```
-
-**macOS:**
-```bash
-brew install android-platform-tools
-```
-
-**Linux:**
-```bash
-sudo apt-get install android-tools-adb
-```
-
-### Enabling USB Debugging on Android
-
-1. Go to **Settings** → **About Phone**
-2. Tap **Build Number** 7 times to enable Developer Options
-3. Go to **Settings** → **Developer Options**
-4. Enable **USB Debugging**
-5. Connect device via USB and accept the debugging prompt
-
-### Verify Connection
-
-```bash
-adb devices
-```
-
-You should see your device listed.
 
 ## Development
 
