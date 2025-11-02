@@ -8,12 +8,14 @@ A Model Context Protocol (MCP) server that provides Android device control capab
 - 👆 **Touch**: Simulate touch events at specific coordinates
 - 👉 **Swipe**: Perform swipe gestures between coordinates
 - 🔌 **ADB Integration**: Direct integration with Android Debug Bridge
+- 🚀 **Auto-Download**: Automatically downloads ADB from official Android sources if not found
 
 ## Prerequisites
 
 - Node.js 18 or higher
-- ADB (Android Debug Bridge) installed and in PATH
 - Android device connected via USB with USB debugging enabled, or emulator running
+
+**Note:** ADB (Android Debug Bridge) is optional - if not found in your system PATH, the server will automatically download it from official Android sources on first use.
 
 ## Installation
 
@@ -107,7 +109,13 @@ Perform a swipe gesture between two coordinates.
 
 ## ADB Setup
 
-### Installing ADB
+### Automatic Installation
+
+The server will automatically download and install ADB from official Android sources if it's not found on your system. The downloaded ADB will be stored in `~/.android-mcp-server/platform-tools/`.
+
+### Manual Installation (Optional)
+
+If you prefer to install ADB manually or want it available system-wide:
 
 **Windows:**
 ```bash

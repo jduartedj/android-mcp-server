@@ -1,7 +1,14 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { access, readFile } from 'fs/promises';
+import { access, readFile, mkdir, writeFile, chmod, rm } from 'fs/promises';
 import { constants } from 'fs';
+import { createWriteStream } from 'fs';
+import { pipeline } from 'stream/promises';
+import { join, dirname } from 'path';
+import { platform, homedir, arch } from 'os';
+import * as https from 'https';
+import * as http from 'http';
+import extract from 'extract-zip';
 
 const execFileAsync = promisify(execFile);
 
@@ -12,9 +19,191 @@ export interface ADBOptions {
 
 export class ADBWrapper {
   private adbPath: string;
+  private adbInitialized: boolean = false;
 
   constructor(options: ADBOptions = {}) {
     this.adbPath = options.adbPath || process.env.ADB_PATH || 'adb';
+  }
+
+  /**
+   * Get the download URL for ADB based on the current platform
+   */
+  private getADBDownloadUrl(): { url: string; filename: string } {
+    const currentPlatform = platform();
+    const currentArch = arch();
+    
+    // Latest platform-tools version
+    const baseUrl = 'https://dl.google.com/android/repository';
+    
+    switch (currentPlatform) {
+      case 'win32':
+        return {
+          url: `${baseUrl}/platform-tools-latest-windows.zip`,
+          filename: 'platform-tools-windows.zip'
+        };
+      case 'darwin':
+        return {
+          url: `${baseUrl}/platform-tools-latest-darwin.zip`,
+          filename: 'platform-tools-darwin.zip'
+        };
+      case 'linux':
+        return {
+          url: `${baseUrl}/platform-tools-latest-linux.zip`,
+          filename: 'platform-tools-linux.zip'
+        };
+      default:
+        throw new Error(`Unsupported platform: ${currentPlatform}`);
+    }
+  }
+
+  /**
+   * Get the local ADB directory path
+   */
+  private getADBDirectory(): string {
+    const adbDir = join(homedir(), '.android-mcp-server', 'platform-tools');
+    return adbDir;
+  }
+
+  /**
+   * Get the expected ADB executable path
+   */
+  private getADBExecutablePath(): string {
+    const adbDir = this.getADBDirectory();
+    const currentPlatform = platform();
+    
+    if (currentPlatform === 'win32') {
+      return join(adbDir, 'platform-tools', 'adb.exe');
+    } else {
+      return join(adbDir, 'platform-tools', 'adb');
+    }
+  }
+
+  /**
+   * Download a file from a URL
+   */
+  private async downloadFile(url: string, destination: string): Promise<void> {
+    await mkdir(dirname(destination), { recursive: true });
+    
+    return new Promise((resolve, reject) => {
+      const file = createWriteStream(destination);
+      const client = url.startsWith('https') ? https : http;
+      
+      console.error(`Downloading ADB from ${url}...`);
+      
+      client.get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          // Follow redirect
+          file.close();
+          if (response.headers.location) {
+            this.downloadFile(response.headers.location, destination)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            reject(new Error('Redirect without location header'));
+          }
+          return;
+        }
+        
+        if (response.statusCode !== 200) {
+          file.close();
+          reject(new Error(`Failed to download: ${response.statusCode}`));
+          return;
+        }
+        
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+        
+        file.on('error', (err) => {
+          file.close();
+          rm(destination, { force: true }).catch(() => {});
+          reject(err);
+        });
+      }).on('error', (err) => {
+        file.close();
+        rm(destination, { force: true }).catch(() => {});
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * Download and install ADB
+   */
+  private async downloadADB(): Promise<string> {
+    const { url, filename } = this.getADBDownloadUrl();
+    const adbDir = this.getADBDirectory();
+    const downloadPath = join(adbDir, filename);
+    
+    try {
+      // Download the ZIP file
+      await this.downloadFile(url, downloadPath);
+      
+      console.error('Extracting ADB...');
+      // Extract the ZIP file
+      await extract(downloadPath, { dir: adbDir });
+      
+      // Clean up the ZIP file
+      await rm(downloadPath, { force: true });
+      
+      const adbExecutable = this.getADBExecutablePath();
+      
+      // Make executable on Unix-like systems
+      if (platform() !== 'win32') {
+        await chmod(adbExecutable, 0o755);
+      }
+      
+      console.error('ADB installed successfully!');
+      return adbExecutable;
+    } catch (error) {
+      throw new Error(`Failed to download ADB: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Check if ADB is available and download if necessary
+   */
+  private async ensureADB(): Promise<void> {
+    if (this.adbInitialized) {
+      return;
+    }
+
+    try {
+      // First, try the configured/system ADB
+      await execFileAsync(this.adbPath, ['version']);
+      this.adbInitialized = true;
+      console.error(`Using ADB at: ${this.adbPath}`);
+      return;
+    } catch (error) {
+      console.error('ADB not found in PATH, checking local installation...');
+    }
+
+    // Check if we have a local installation
+    const localADBPath = this.getADBExecutablePath();
+    try {
+      await access(localADBPath, constants.X_OK);
+      await execFileAsync(localADBPath, ['version']);
+      this.adbPath = localADBPath;
+      this.adbInitialized = true;
+      console.error(`Using locally installed ADB at: ${localADBPath}`);
+      return;
+    } catch (error) {
+      console.error('Local ADB installation not found, downloading...');
+    }
+
+    // Download and install ADB
+    try {
+      this.adbPath = await this.downloadADB();
+      this.adbInitialized = true;
+    } catch (error) {
+      throw new Error(
+        `ADB not found and automatic download failed: ${error instanceof Error ? error.message : String(error)}. ` +
+        'Please install ADB manually from https://developer.android.com/tools/releases/platform-tools'
+      );
+    }
   }
 
   /**
@@ -24,6 +213,9 @@ export class ADBWrapper {
     args: string[],
     deviceSerial?: string
   ): Promise<{ stdout: string; stderr: string }> {
+    // Ensure ADB is available before executing commands
+    await this.ensureADB();
+    
     const commandArgs = deviceSerial ? ['-s', deviceSerial, ...args] : args;
 
     try {
