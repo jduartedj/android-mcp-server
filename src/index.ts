@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ADBWrapper } from './adb-wrapper.js';
-import { screenshotHandler, touchHandler, swipeHandler } from './handlers.js';
+import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler } from './handlers.js';
 
 const SERVER_NAME = 'android-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -117,6 +117,41 @@ class AndroidMCPServer {
             required: ['startX', 'startY', 'endX', 'endY'],
           },
         },
+        {
+          name: 'android_launch_app',
+          description: 'Launch an Android app by package name',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              packageName: {
+                type: 'string',
+                description: 'Package name of the app to launch (e.g., com.example.app)',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['packageName'],
+          },
+        },
+        {
+          name: 'android_list_packages',
+          description: 'List installed packages on the Android device',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              filter: {
+                type: 'string',
+                description: 'Optional filter to search for specific packages (case-insensitive)',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+          },
+        },
       ],
     }));
 
@@ -132,6 +167,10 @@ class AndroidMCPServer {
             return await touchHandler(this.adb, args);
           case 'android_swipe':
             return await swipeHandler(this.adb, args);
+          case 'android_launch_app':
+            return await launchAppHandler(this.adb, args);
+          case 'android_list_packages':
+            return await listPackagesHandler(this.adb, args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

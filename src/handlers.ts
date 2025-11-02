@@ -21,6 +21,16 @@ interface SwipeArgs {
   deviceSerial?: string;
 }
 
+interface LaunchAppArgs {
+  packageName: string;
+  deviceSerial?: string;
+}
+
+interface ListPackagesArgs {
+  filter?: string;
+  deviceSerial?: string;
+}
+
 /**
  * Handle screenshot tool call
  */
@@ -133,5 +143,59 @@ export async function swipeHandler(
     };
   } catch (error) {
     throw new Error(`Swipe failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Handle launch app tool call
+ */
+export async function launchAppHandler(
+  adb: ADBWrapper,
+  args: any
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { packageName, deviceSerial } = args as LaunchAppArgs;
+
+  if (!packageName || typeof packageName !== 'string') {
+    throw new Error('Invalid package name: packageName must be a non-empty string');
+  }
+
+  try {
+    await adb.launchApp(packageName, deviceSerial);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Successfully launched app: ${packageName}`,
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Launch app failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Handle list packages tool call
+ */
+export async function listPackagesHandler(
+  adb: ADBWrapper,
+  args: any
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { filter, deviceSerial } = args as ListPackagesArgs;
+
+  try {
+    const packages = await adb.listPackages(filter, deviceSerial);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Found ${packages.length} packages${filter ? ` matching "${filter}"` : ''}:\n${packages.join('\n')}`,
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`List packages failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

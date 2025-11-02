@@ -5,7 +5,7 @@ import { constants } from 'fs';
 import { createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
 import { join, dirname } from 'path';
-import { platform, homedir, arch } from 'os';
+import { platform, homedir, arch, tmpdir } from 'os';
 import * as https from 'https';
 import * as http from 'http';
 import extract from 'extract-zip';
@@ -72,9 +72,9 @@ export class ADBWrapper {
     const currentPlatform = platform();
     
     if (currentPlatform === 'win32') {
-      return join(adbDir, 'platform-tools', 'adb.exe');
+      return join(adbDir, 'adb.exe');
     } else {
-      return join(adbDir, 'platform-tools', 'adb');
+      return join(adbDir, 'adb');
     }
   }
 
@@ -272,11 +272,13 @@ export class ADBWrapper {
       return outputPath;
     } else {
       // Pull screenshot to temp and read as buffer
-      const tempPath = `/tmp/screenshot_${Date.now()}.png`;
+      const tempPath = join(tmpdir(), `screenshot_${Date.now()}.png`);
       await this.exec(['pull', devicePath, tempPath], device);
       await this.exec(['shell', 'rm', devicePath], device);
 
       const buffer = await readFile(tempPath);
+      // Clean up temp file
+      await rm(tempPath, { force: true });
       return buffer;
     }
   }
@@ -349,5 +351,40 @@ export class ADBWrapper {
       width: parseInt(match[1], 10),
       height: parseInt(match[2], 10),
     };
+  }
+
+  /**
+   * Launch an app by package name
+   */
+  async launchApp(packageName: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    await this.exec(['shell', 'monkey', '-p', packageName, '-c', 'android.intent.category.LAUNCHER', '1'], device);
+  }
+
+  /**
+   * Launch an app by activity name
+   */
+  async startActivity(activityName: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    await this.exec(['shell', 'am', 'start', '-n', activityName], device);
+  }
+
+  /**
+   * Get list of installed packages
+   */
+  async listPackages(filter?: string, deviceSerial?: string): Promise<string[]> {
+    const device = await this.getTargetDevice(deviceSerial);
+    const { stdout } = await this.exec(['shell', 'pm', 'list', 'packages'], device);
+    
+    const packages = stdout
+      .split('\n')
+      .map(line => line.replace('package:', '').trim())
+      .filter(pkg => pkg.length > 0);
+
+    if (filter) {
+      return packages.filter(pkg => pkg.toLowerCase().includes(filter.toLowerCase()));
+    }
+
+    return packages;
   }
 }
