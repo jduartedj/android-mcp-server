@@ -1,0 +1,31 @@
+{
+  "name": "android-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Android device control via ADB",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "android-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "android",
+    "adb",
+    "automation",
+    "model-context-protocol"
+  ],
+  "author": "jduartedj",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
