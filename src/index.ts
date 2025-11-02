@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ADBWrapper } from './adb-wrapper.js';
-import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler, handleStartScrcpyStream, handleStopScrcpyStream, handleGetLatestFrame, handleCaptureFrameScrcpy } from './handlers.js';
+import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler, handleStartScrcpyStream, handleStopScrcpyStream, handleGetLatestFrame, handleCaptureFrameScrcpy, handleSendKeyEvent, handleInputText } from './handlers.js';
 
 const SERVER_NAME = 'android-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -395,6 +395,42 @@ class AndroidMCPServer {
             },
           },
         },
+        {
+          name: 'android_send_key_event',
+          description: 'Send a key event to the Android device (e.g., KEYEVENT_HOME, KEYEVENT_BACK, KEYEVENT_ENTER)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              keyCode: {
+                type: 'string',
+                description: 'Key event code (e.g., KEYEVENT_HOME, KEYEVENT_BACK, KEYEVENT_ENTER, 3 for HOME, 4 for BACK). Can be key name or numeric code.',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['keyCode'],
+          },
+        },
+        {
+          name: 'android_input_text',
+          description: 'Input text into the currently focused field on the Android device via ADB',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              text: {
+                type: 'string',
+                description: 'Text to input. Spaces will be automatically handled.',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['text'],
+          },
+        },
       ],
     }));
 
@@ -442,6 +478,10 @@ class AndroidMCPServer {
             return await handleGetLatestFrame(this.adb, args as any);
           case 'android_capture_frame_scrcpy':
             return await handleCaptureFrameScrcpy(this.adb, args as any);
+          case 'android_send_key_event':
+            return await handleSendKeyEvent(this.adb, args as any);
+          case 'android_input_text':
+            return await handleInputText(this.adb, args as any);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

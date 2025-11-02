@@ -669,3 +669,49 @@ export async function handleCaptureFrameScrcpy(adb: ADBWrapper, args: CaptureFra
     throw new Error(`Failed to capture frame with scrcpy: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
+interface SendKeyEventArgs {
+  keyCode: string;
+  deviceSerial?: string;
+}
+
+export async function handleSendKeyEvent(adb: ADBWrapper, args: SendKeyEventArgs): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { keyCode, deviceSerial } = args;
+
+  try {
+    await adb.sendKeyEvent(keyCode, deviceSerial);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Key event sent: ${keyCode}`,
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to send key event: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+interface InputTextArgs {
+  text: string;
+  deviceSerial?: string;
+}
+
+export async function handleInputText(adb: ADBWrapper, args: InputTextArgs): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { text, deviceSerial } = args;
+
+  try {
+    await adb.inputText(text, deviceSerial);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Text input sent: "${text}"`,
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to input text: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
