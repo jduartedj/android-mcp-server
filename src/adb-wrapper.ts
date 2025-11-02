@@ -72,9 +72,9 @@ export class ADBWrapper {
     const currentPlatform = platform();
     
     if (currentPlatform === 'win32') {
-      return join(adbDir, 'adb.exe');
+      return join(adbDir, 'platform-tools', 'adb.exe');
     } else {
-      return join(adbDir, 'adb');
+      return join(adbDir, 'platform-tools', 'adb');
     }
   }
 
@@ -386,5 +386,23 @@ export class ADBWrapper {
     }
 
     return packages;
+  }
+
+  /**
+   * Send a key event
+   */
+  async sendKeyEvent(keyCode: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    await this.exec(['shell', 'input', 'keyevent', keyCode], device);
+  }
+
+  /**
+   * Input text
+   */
+  async inputText(text: string, deviceSerial?: string): Promise<void> {
+    const device = await this.getTargetDevice(deviceSerial);
+    // Escape spaces and special characters
+    const escapedText = text.replace(/ /g, '%s');
+    await this.exec(['shell', 'input', 'text', escapedText], device);
   }
 }
