@@ -411,6 +411,14 @@ export class ADBWrapper {
   }
 
   /**
+   * Execute a generic ADB command with custom arguments
+   */
+  async executeCommand(args: string[], deviceSerial?: string): Promise<{ stdout: string; stderr: string }> {
+    const device = deviceSerial ? await this.getTargetDevice(deviceSerial) : undefined;
+    return await this.exec(args, device);
+  }
+
+  /**
    * Dump window hierarchy using UIAutomator (returns XML)
    */
   async dumpUIHierarchy(deviceSerial?: string): Promise<string> {

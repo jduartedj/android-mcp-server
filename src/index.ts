@@ -7,7 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ADBWrapper } from './adb-wrapper.js';
-import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler, handleStartScrcpyStream, handleStopScrcpyStream, handleGetLatestFrame, handleCaptureFrameScrcpy, handleSendKeyEvent, handleInputText } from './handlers.js';
+import { screenshotHandler, touchHandler, swipeHandler, launchAppHandler, listPackagesHandler, uiautomatorDumpHandler, uiautomatorFindHandler, uiautomatorClickHandler, uiautomatorWaitHandler, uiautomatorSetTextHandler, uiautomatorClearTextHandler, uiautomatorLongClickHandler, uiautomatorDoubleClickHandler, uiautomatorToggleCheckboxHandler, uiautomatorScrollInElementHandler, handleStartScrcpyStream, handleStopScrcpyStream, handleGetLatestFrame, handleCaptureFrameScrcpy, handleSendKeyEvent, handleInputText, handleExecuteCommand } from './handlers.js';
 
 const SERVER_NAME = 'android-mcp-server';
 const SERVER_VERSION = '0.1.0';
@@ -431,6 +431,27 @@ class AndroidMCPServer {
             required: ['text'],
           },
         },
+        {
+          name: 'android_execute_command',
+          description: 'Execute a generic ADB command with custom arguments. Allows agents to run any ADB command with their own parameters.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              args: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of ADB command arguments (e.g., ["shell", "pm", "list", "packages"] or ["logcat", "-d", "-s", "MyTag"])',
+              },
+              deviceSerial: {
+                type: 'string',
+                description: 'Specific device serial number to target (optional)',
+              },
+            },
+            required: ['args'],
+          },
+        },
       ],
     }));
 
@@ -482,6 +503,8 @@ class AndroidMCPServer {
             return await handleSendKeyEvent(this.adb, args as any);
           case 'android_input_text':
             return await handleInputText(this.adb, args as any);
+          case 'android_execute_command':
+            return await handleExecuteCommand(this.adb, args as any);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }

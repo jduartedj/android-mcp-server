@@ -715,3 +715,35 @@ export async function handleInputText(adb: ADBWrapper, args: InputTextArgs): Pro
     throw new Error(`Failed to input text: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
+interface ExecuteCommandArgs {
+  args: string[];
+  deviceSerial?: string;
+}
+
+export async function handleExecuteCommand(adb: ADBWrapper, args: ExecuteCommandArgs): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const { args: adbArgs, deviceSerial } = args;
+
+  if (!adbArgs || !Array.isArray(adbArgs) || adbArgs.length === 0) {
+    throw new Error('args parameter is required and must be a non-empty array');
+  }
+
+  try {
+    const { stdout, stderr } = await adb.executeCommand(adbArgs, deviceSerial);
+    
+    let output = '';
+    if (stdout) output += `stdout:\n${stdout}`;
+    if (stderr) output += `${output ? '\n\n' : ''}stderr:\n${stderr}`;
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: output || 'Command executed successfully (no output)',
+        },
+      ],
+    };
+  } catch (error) {
+    throw new Error(`Failed to execute ADB command: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}

@@ -1,6 +1,6 @@
 # Android MCP Server
 
-A Model Context Protocol (MCP) server providing comprehensive Android device control with **21 powerful tools** for UI automation, screen capture, and ultra-fast H.264 streaming via Scrcpy.
+A Model Context Protocol (MCP) server providing comprehensive Android device control with **22 powerful tools** for UI automation, screen capture, and ultra-fast H.264 streaming via Scrcpy.
 
 ## Features
 
@@ -9,6 +9,9 @@ A Model Context Protocol (MCP) server providing comprehensive Android device con
 - ⌨️ **Text Input & Key Events**: Direct text input and key event simulation (2 tools)
   - Send key events (HOME, BACK, ENTER, etc.)
   - Input text directly into focused fields
+- 🔧 **Generic ADB Commands**: Execute any ADB command with custom parameters (1 tool)
+  - Full flexibility for agents to run custom ADB operations
+  - Access to all ADB functionality (logcat, shell commands, package manager, etc.)
 - 🎯 **UIAutomator**: Full UI hierarchy inspection and element interaction (10 tools)
   - Dump complete XML UI hierarchy
   - Find elements by resource ID or text
@@ -140,7 +143,10 @@ Once integrated, you can ask GitHub Copilot:
 - "Send the home key event"
 - "Type 'hello world' into the current field"
 - "Press enter to submit the form"
-- "List all installed apps on my device"
+- "Get the device battery status using ADB"
+- "Read the logcat output for debugging"
+- "Clear the app data for com.example.app"
+- "List all installed packages"
 - "Launch the Chrome app"
 - "Find the login button and click it"
 - "Fill in the email field with user@example.com"
@@ -150,7 +156,7 @@ Once integrated, you can ask GitHub Copilot:
 - "Toggle the enable notifications checkbox"
 - "Wait for the loading indicator to disappear"
 
-## All 21 MCP Tools
+## All 22 MCP Tools
 
 ### Basic Tools (5)
 
@@ -334,9 +340,114 @@ Send a key event to the Android device (e.g., HOME, BACK, ENTER).
 }
 ```
 
+### Generic ADB Command Tool (1)
+
+#### 8. `android_execute_command`
+
+Execute a generic ADB command with custom arguments. This powerful tool gives agents full flexibility to run any ADB command with their own parameters.
+
+**Parameters:**
+- `args` (required): Array of ADB command arguments (e.g., ["shell", "pm", "list", "packages"])
+- `deviceSerial` (optional): Target specific device by serial number
+
+**Performance:** Varies by command
+
+**Returns:** Both stdout and stderr from the command execution
+
+**Use Cases:**
+- Execute custom shell commands
+- Access logcat for debugging
+- Manage packages (install, uninstall, clear data)
+- Query device properties
+- File operations (push, pull)
+- Network operations (port forwarding)
+- Any ADB functionality not covered by specific tools
+
+**Common Examples:**
+
+**List all packages:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["shell", "pm", "list", "packages"]
+  }
+}
+```
+
+**Get device properties:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["shell", "getprop", "ro.build.version.release"]
+  }
+}
+```
+
+**Read logcat:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["logcat", "-d", "-s", "MyTag:V"]
+  }
+}
+```
+
+**Clear app data:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["shell", "pm", "clear", "com.example.app"]
+  }
+}
+```
+
+**Get battery info:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["shell", "dumpsys", "battery"]
+  }
+}
+```
+
+**Push file to device:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["push", "/local/path/file.txt", "/sdcard/file.txt"]
+  }
+}
+```
+
+**Install APK:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["install", "-r", "/path/to/app.apk"]
+  }
+}
+```
+
+**Port forwarding:**
+```json
+{
+  "name": "android_execute_command",
+  "arguments": {
+    "args": ["forward", "tcp:8080", "tcp:8080"]
+  }
+}
+```
+
 ### UIAutomator Tools (10)
 
-#### 8. `android_uiautomator_dump`
+#### 9. `android_uiautomator_dump`
 
 Dump the complete UI hierarchy of the current screen as XML for inspection and element identification.
 
@@ -360,7 +471,7 @@ Dump the complete UI hierarchy of the current screen as XML for inspection and e
 }
 ```
 
-#### 9. `android_uiautomator_find`
+#### 10. `android_uiautomator_find`
 
 Find UI elements by resource ID or text content using UIAutomator.
 
@@ -387,7 +498,7 @@ Find UI elements by resource ID or text content using UIAutomator.
 }
 ```
 
-#### 10. `android_uiautomator_click`
+#### 11. `android_uiautomator_click`
 
 Click on a UI element by resource ID.
 
@@ -405,7 +516,7 @@ Click on a UI element by resource ID.
 }
 ```
 
-#### 11. `android_uiautomator_double_click`
+#### 12. `android_uiautomator_double_click`
 
 Perform a double-click on a UI element by resource ID.
 
@@ -423,7 +534,7 @@ Perform a double-click on a UI element by resource ID.
 }
 ```
 
-#### 12. `android_uiautomator_long_click`
+#### 13. `android_uiautomator_long_click`
 
 Perform a long-click on a UI element by resource ID.
 
@@ -441,7 +552,7 @@ Perform a long-click on a UI element by resource ID.
 }
 ```
 
-#### 13. `android_uiautomator_set_text`
+#### 14. `android_uiautomator_set_text`
 
 Set text on a UI element by resource ID. Automatically clears existing text first.
 
@@ -463,7 +574,7 @@ Set text on a UI element by resource ID. Automatically clears existing text firs
 }
 ```
 
-#### 14. `android_uiautomator_clear_text`
+#### 15. `android_uiautomator_clear_text`
 
 Clear text from a UI element by resource ID.
 
@@ -481,7 +592,7 @@ Clear text from a UI element by resource ID.
 }
 ```
 
-#### 15. `android_uiautomator_toggle_checkbox`
+#### 16. `android_uiautomator_toggle_checkbox`
 
 Toggle a checkbox element by resource ID.
 
@@ -499,7 +610,7 @@ Toggle a checkbox element by resource ID.
 }
 ```
 
-#### 16. `android_uiautomator_wait`
+#### 17. `android_uiautomator_wait`
 
 Wait for a UI element to appear by resource ID with timeout support.
 
@@ -521,7 +632,7 @@ Wait for a UI element to appear by resource ID with timeout support.
 }
 ```
 
-#### 17. `android_uiautomator_scroll_in_element`
+#### 18. `android_uiautomator_scroll_in_element`
 
 Scroll within a specific scrollable UI element.
 
@@ -549,7 +660,7 @@ Scroll within a specific scrollable UI element.
 
 Scrcpy streaming provides ultra-fast frame capture using H.264 video encoding, perfect for real-time monitoring, rapid screenshot sequences, or continuous frame polling.
 
-#### 18. `android_start_scrcpy_stream`
+#### 19. `android_start_scrcpy_stream`
 
 Initialize an H.264 video stream from the Android device using Scrcpy.
 
@@ -577,7 +688,7 @@ Initialize an H.264 video stream from the Android device using Scrcpy.
 }
 ```
 
-#### 19. `android_get_latest_frame`
+#### 20. `android_get_latest_frame`
 
 Poll the latest frame from an active Scrcpy stream.
 
@@ -603,7 +714,7 @@ Poll the latest frame from an active Scrcpy stream.
 }
 ```
 
-#### 20. `android_stop_scrcpy_stream`
+#### 21. `android_stop_scrcpy_stream`
 
 Stop an active Scrcpy H.264 stream.
 
@@ -618,7 +729,7 @@ Stop an active Scrcpy H.264 stream.
 }
 ```
 
-#### 21. `android_capture_frame_scrcpy`
+#### 22. `android_capture_frame_scrcpy`
 
 Capture a single frame using Scrcpy without starting a persistent stream.
 
@@ -657,6 +768,7 @@ Capture a single frame using Scrcpy without starting a persistent stream.
 | `android_swipe` | Swipe gesture | Immediate | Navigation, scrolling |
 | `android_input_text` | Direct text input | Immediate | Quick text entry via ADB |
 | `android_send_key_event` | Key events | Immediate | Navigation (HOME, BACK, ENTER) |
+| `android_execute_command` | Generic ADB | Varies | Custom ADB operations, full flexibility |
 | `android_uiautomator_dump` | UI inspection | 500-800ms | Element discovery |
 | `android_uiautomator_find` | Element search | Fast | Located specific elements |
 | `android_uiautomator_*` | Element interaction | Immediate | Form filling, UI automation |
