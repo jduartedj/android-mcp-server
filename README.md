@@ -17,6 +17,24 @@ A Model Context Protocol (MCP) server that provides Android device control capab
 
 **Note:** ADB (Android Debug Bridge) is optional - if not found in your system PATH, the server will automatically download it from official Android sources on first use.
 
+## Quick Start
+
+1. **Clone and Build**
+   ```bash
+   git clone https://github.com/jduartedj/android-mcp-server.git
+   cd android-mcp-server
+   npm install
+   npm run build
+   ```
+
+2. **Test the Server**
+   ```bash
+   node dist/index.js
+   ```
+   The server will start and automatically download ADB if needed.
+
+3. **Add to VS Code** (see [VS Code Integration](#vs-code-integration) below)
+
 ## Installation
 
 ```bash
@@ -26,7 +44,7 @@ npm run build
 
 ## Usage
 
-### Running the Server
+### Running the Server Standalone
 
 ```bash
 node dist/index.js
@@ -38,6 +56,70 @@ The server supports the following environment variables:
 
 - `ADB_PATH`: Custom path to ADB executable (default: uses system PATH)
 - `DEVICE_SERIAL`: Specific device serial number to target (default: first available device)
+
+## VS Code Integration
+
+### Adding to VS Code GitHub Copilot
+
+To use this MCP server with GitHub Copilot in VS Code:
+
+1. **Open VS Code Settings** (Ctrl+, or Cmd+,)
+
+2. **Search for MCP** or navigate to: `GitHub Copilot > Chat > MCP Servers`
+
+3. **Edit the MCP configuration** by clicking "Edit in settings.json"
+
+4. **Add the Android MCP Server** to your configuration:
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "android-mcp-server": {
+      "command": "node",
+      "args": ["F:\\android-mcp-server\\dist\\index.js"],
+      "env": {
+        "ADB_PATH": "",
+        "DEVICE_SERIAL": ""
+      }
+    }
+  }
+}
+```
+
+**Note:** Replace `F:\\android-mcp-server\\dist\\index.js` with the actual absolute path to your `dist/index.js` file. Use double backslashes on Windows.
+
+5. **Alternative: Using npx** (if published to npm):
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "android-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "android-mcp-server"]
+    }
+  }
+}
+```
+
+6. **Reload VS Code** or restart the GitHub Copilot extension
+
+### Verifying the Integration
+
+After adding the server:
+
+1. Open GitHub Copilot Chat in VS Code
+2. Type `@workspace` and you should see the Android MCP tools available
+3. Try asking: "Take a screenshot of my Android device"
+4. Copilot will use the `android_screenshot` tool to capture the screen
+
+### Example Prompts for Copilot
+
+Once integrated, you can ask GitHub Copilot:
+
+- "Take a screenshot of my Android device"
+- "Tap at coordinates 500, 1000 on my phone"
+- "Swipe up on my Android screen"
+- "Take a screenshot and save it to ./my-screenshot.png"
 
 ### Available Tools
 
