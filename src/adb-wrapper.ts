@@ -423,7 +423,17 @@ export class ADBWrapper {
    */
   async dumpUIHierarchy(deviceSerial?: string): Promise<string> {
     const device = await this.getTargetDevice(deviceSerial);
-    const { stdout } = await this.exec(['shell', 'uiautomator', 'dump'], device);
+    const hierarchyFile = '/sdcard/window_dump.xml';
+    
+    // Dump the UI hierarchy to a file
+    await this.exec(['shell', 'uiautomator', 'dump', hierarchyFile], device);
+    
+    // Read the XML file content
+    const { stdout } = await this.exec(['shell', 'cat', hierarchyFile], device);
+    
+    // Clean up the file
+    await this.exec(['shell', 'rm', hierarchyFile], device);
+    
     return stdout;
   }
 
