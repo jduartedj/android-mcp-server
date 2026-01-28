@@ -130,17 +130,34 @@ export async function screenshotHandler(
 }
 
 /**
+ * Helper function to ensure a value is a number (handles string-to-number conversion)
+ */
+function toNumber(value: any, name: string): number {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  throw new Error(`Invalid ${name}: must be a number, got ${typeof value}`);
+}
+
+/**
  * Handle touch tool call
  */
 export async function touchHandler(
   adb: ADBWrapper,
   args: any
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
-  const { x, y, duration = 100, deviceSerial } = args as TouchArgs;
-
-  if (typeof x !== 'number' || typeof y !== 'number') {
-    throw new Error('Invalid coordinates: x and y must be numbers');
-  }
+  const { deviceSerial } = args as TouchArgs;
+  
+  // Robust number conversion (handles string coordinates from some MCP clients)
+  const x = toNumber(args.x, 'x coordinate');
+  const y = toNumber(args.y, 'y coordinate');
+  const duration = args.duration !== undefined ? toNumber(args.duration, 'duration') : 100;
 
   if (x < 0 || y < 0) {
     throw new Error('Invalid coordinates: x and y must be positive');
@@ -169,16 +186,14 @@ export async function swipeHandler(
   adb: ADBWrapper,
   args: any
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
-  const { startX, startY, endX, endY, duration = 300, deviceSerial } = args as SwipeArgs;
+  const { deviceSerial } = args as SwipeArgs;
 
-  if (
-    typeof startX !== 'number' ||
-    typeof startY !== 'number' ||
-    typeof endX !== 'number' ||
-    typeof endY !== 'number'
-  ) {
-    throw new Error('Invalid coordinates: all coordinates must be numbers');
-  }
+  // Robust number conversion (handles string coordinates from some MCP clients)
+  const startX = toNumber(args.startX, 'startX coordinate');
+  const startY = toNumber(args.startY, 'startY coordinate');
+  const endX = toNumber(args.endX, 'endX coordinate');
+  const endY = toNumber(args.endY, 'endY coordinate');
+  const duration = args.duration !== undefined ? toNumber(args.duration, 'duration') : 300;
 
   if (startX < 0 || startY < 0 || endX < 0 || endY < 0) {
     throw new Error('Invalid coordinates: all coordinates must be positive');
